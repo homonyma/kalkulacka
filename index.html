@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kompaktní 3D Kalkulačka</title>
+    <style>
+        :root {
+            --bg: #1e1e1e;
+            --shadow-dark: #0d0d0d;
+            --shadow-light: #2f2f2f;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #121212;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .calculator {
+            background-color: var(--bg);
+            padding: 15px; /* Zmenšeno */
+            border-radius: 25px; /* Zmenšeno */
+            width: 240px; /* Zmenšeno z 340px */
+            position: relative;
+            box-shadow: 12px 12px 30px var(--shadow-dark), -6px -6px 20px var(--shadow-light);
+            border: 1px solid #252525;
+            overflow: hidden;
+        }
+
+        .history-toggle {
+            color: #555;
+            font-size: 0.6rem;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #display {
+            width: 100%;
+            height: 55px; /* Zmenšeno */
+            font-size: 1.2rem; /* Zmenšeno */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 8px;
+            box-sizing: border-box;
+            background: #151515;
+            color: #fff;
+            border-radius: 12px;
+            box-shadow: inset 5px 5px 10px #0a0a0a, inset -2px -2px 6px #222;
+        }
+
+        .history-panel {
+            position: absolute;
+            top: 88px;
+            left: 0;
+            width: 100%;
+            height: calc(100% - 88px);
+            background: rgba(30, 30, 30, 0.98);
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            box-sizing: border-box;
+        }
+
+        .history-panel.open { transform: translateY(0); }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.7rem;
+        }
+
+        .history-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .history-item {
+            color: #eee;
+            font-size: 0.75rem;
+            background: rgba(255,255,255,0.05);
+            padding: 6px;
+            border-radius: 6px;
+            text-align: right;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px; /* Zmenšeno */
+        }
+
+        button {
+            aspect-ratio: 1;
+            border: none;
+            border-radius: 12px;
+            background: var(--bg);
+            color: #ccc;
+            font-size: 0.9rem; /* Zmenšeno */
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 4px 4px 8px var(--shadow-dark), -2px -2px 5px var(--shadow-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        button:active {
+            box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -1px -1px 4px var(--shadow-light);
+            transform: scale(0.96);
+        }
+
+        .btn-equal { grid-column: span 4; aspect-ratio: auto; height: 45px; background: #fff; color: #000; font-weight: bold; margin-top: 5px; }
+        .btn-copy { background: #252525; color: #fff; font-size: 0.65rem; }
+        .btn-op { background: #222; color: #aaa; }
+        .clear-btn { font-size: 0.5rem; width: auto; height: 25px; padding: 0 10px; border-radius: 4px; background: #333; }
+    </style>
+</head>
+<body>
+
+<div class="calculator">
+    <div class="history-toggle" onclick="toggleHistory()">● historie ●</div>
+    <div id="display">0</div>
+    
+    <div id="historyPanel" class="history-panel">
+        <div class="history-header">
+            <span style="color:#666">HISTORIE</span>
+            <button class="clear-btn" onclick="clearHistoryList()">SMAZAT</button>
+        </div>
+        <div id="historyList" class="history-list">
+            <div style="color:#444; font-size:0.6rem; text-align:center; margin-top:10px;">Prázdno</div>
+        </div>
+        <button onclick="toggleHistory()" style="margin-top:10px; height:30px; aspect-ratio:auto; width:100%; font-size:0.7rem;">ZAVŘÍT</button>
+    </div>
+
+    <div class="grid">
+        <button onclick="clearDisplay()">AC</button>
+        <button class="btn-copy" onclick="copyToClipboard()">ctrl+c</button>
+        <button onclick="multiplyBySpecial()">x1.21</button>
+        <button onclick="divideBySpecial()">:1.21</button>
+        
+        <button onclick="appendToDisplay('7')">7</button>
+        <button onclick="appendToDisplay('8')">8</button>
+        <button onclick="appendToDisplay('9')">9</button>
+        <button class="btn-op" onclick="updateOperator('/')">÷</button>
+        
+        <button onclick="appendToDisplay('4')">4</button>
+        <button onclick="appendToDisplay('5')">5</button>
+        <button onclick="appendToDisplay('6')">6</button>
+        <button class="btn-op" onclick="updateOperator('*')">×</button>
+        
+        <button onclick="appendToDisplay('1')">1</button>
+        <button onclick="appendToDisplay('2')">2</button>
+        <button onclick="appendToDisplay('3')">3</button>
+        <button class="btn-op" onclick="updateOperator('-')">−</button>
+        
+        <button onclick="appendToDisplay('0')">0</button>
+        <button onclick="appendToDisplay('.')">.</button>
+        <button onclick="calculatePercent(10)">10%</button>
+        <button class="btn-op" onclick="updateOperator('+')">+</button>
+        
+        <button class="btn-equal" onclick="calculate()">=</button>
+    </div>
+</div>
+
+<script>
+    let currentInput = "";
+    const displayElement = document.getElementById('display');
+    const historyList = document.getElementById('historyList');
+    const historyPanel = document.getElementById('historyPanel');
+
+    function updateDisplay(value) { displayElement.innerText = value || "0"; }
+    function appendToDisplay(char) { currentInput += char; updateDisplay(currentInput); }
+    function updateOperator(op) { if(currentInput!=="") { currentInput += op; updateDisplay(currentInput); } }
+    function clearDisplay() { currentInput = ""; updateDisplay("0"); }
+    function toggleHistory() { historyPanel.classList.toggle('open'); }
+    function clearHistoryList() { historyList.innerHTML = '<div style="color:#444; font-size:0.6rem; text-align:center; margin-top:10px;">Prázdno</div>'; }
+
+    function calculate() {
+        try {
+            if (currentInput) {
+                let expression = currentInput;
+                let result = eval(currentInput);
+                let formattedResult = Number.isInteger(result) ? result.toString() : parseFloat(result.toFixed(4)).toString();
+                if (historyList.innerText.includes("Prázdno")) historyList.innerHTML = "";
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerText = `${expression} = ${formattedResult}`;
+                historyList.prepend(item);
+                currentInput = formattedResult;
+                updateDisplay(currentInput);
+            }
+        } catch { updateDisplay("Chyba"); currentInput = ""; }
+    }
+
+    function calculatePercent(p) { try { let r = eval(currentInput || "0") * (p/100); currentInput = r.toString(); updateDisplay(currentInput); } catch { updateDisplay("Chyba"); } }
+    function multiplyBySpecial() { try { let r = eval(currentInput || "0") * 1.21; currentInput = parseFloat(r.toFixed(4)).toString(); updateDisplay(currentInput); } catch { updateDisplay("Chyba"); } }
+    function divideBySpecial() { try { let r = eval(currentInput || "0") / 1.21; currentInput = parseFloat(r.toFixed(4)).toString(); updateDisplay(currentInput); } catch { updateDisplay("Chyba"); } }
+
+    function copyToClipboard() {
+        const val = displayElement.innerText;
+        navigator.clipboard.writeText(val);
+        const original = val;
+        displayElement.innerText = "❤️Vlcim te❤️";
+        setTimeout(() => { displayElement.innerText = original; }, 2000);
+    }
+</script>
+
+</body>
+</html>
